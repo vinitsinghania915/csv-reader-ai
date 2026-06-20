@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any, TypeVar
 
 from openai import AsyncOpenAI
@@ -15,6 +16,27 @@ logger = structlog.get_logger()
 settings = get_settings()
 
 T = TypeVar("T", bound=BaseModel)
+
+
+_REASONING_BLOCK_RE = re.compile(r"<reasoning>.*?</reasoning>", re.DOTALL | re.IGNORECASE)
+_UNCLOSED_REASONING_RE = re.compile(r"<reasoning>.*$", re.DOTALL | re.IGNORECASE)
+
+
+def _extract_json(raw: str) -> str:
+    """Pull a JSON object out of a noisy LLM response.
+
+    Handles markdown fences and reasoning-model leakage (e.g. gpt-oss emitting
+    `<reasoning>...</reasoning>` blocks alongside the JSON).
+    """
+    text = _REASONING_BLOCK_RE.sub("", raw)
+    text = _UNCLOSED_REASONING_RE.sub("", text)
+    text = text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+    # Last-ditch: extract the first {...} balanced object.
+    first = text.find("{")
+    last = text.rfind("}")
+    if first != -1 and last > first:
+        text = text[first : last + 1]
+    return text
 
 
 class SQLResponse(BaseModel):
@@ -96,6 +118,10 @@ class LLMService:
                 messages=messages,  # type: ignore[arg-type]
                 response_format={"type": "json_object"},
                 temperature=temperature,
+                # gpt-oss / other reasoning models on Bedrock OpenAI-compat
+                # otherwise burn the response budget on internal reasoning.
+                # Non-reasoning models silently ignore this field.
+                extra_body={"reasoning_effort": "minimal"},
             )
         except Exception as exc:
             logger.error("LLM provider error", error=str(exc), provider=self.provider)
@@ -105,10 +131,9 @@ class LLMService:
         try:
             data = json.loads(raw)
         except json.JSONDecodeError as exc:
-            # Some providers wrap JSON in fences despite response_format — strip and retry.
-            stripped = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+            cleaned = _extract_json(raw)
             try:
-                data = json.loads(stripped)
+                data = json.loads(cleaned)
             except json.JSONDecodeError:
                 raise LLMProviderError(
                     self.provider,

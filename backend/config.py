@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     """
 
     # ── App ──────────────────────────────────────────────────────────────
-    APP_NAME: str = "CSV Reader AI"
+    APP_NAME: str = "DataWeaver (DW)"
     DEBUG: bool = False
     API_VERSION: str = "v1"
 

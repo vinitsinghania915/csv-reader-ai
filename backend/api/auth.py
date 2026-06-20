@@ -41,6 +41,10 @@ def _cookie_is_secure() -> bool:
     return settings.BACKEND_URL.startswith("https://")
 
 
+def _cookie_samesite() -> str:
+    return "none" if _cookie_is_secure() else "lax"
+
+
 def _set_session_cookie(response: Response, user_id: str) -> None:
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
@@ -48,13 +52,18 @@ def _set_session_cookie(response: Response, user_id: str) -> None:
         max_age=SESSION_MAX_AGE_SECONDS,
         httponly=True,
         secure=_cookie_is_secure(),
-        samesite="lax",
+        samesite=_cookie_samesite(),
         path="/",
     )
 
 
 def _clear_session_cookie(response: Response) -> None:
-    response.delete_cookie(key=SESSION_COOKIE_NAME, path="/")
+    response.delete_cookie(
+        key=SESSION_COOKIE_NAME,
+        path="/",
+        secure=_cookie_is_secure(),
+        samesite=_cookie_samesite(),
+    )
 
 
 @router.get("/google/login")

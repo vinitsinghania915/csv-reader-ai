@@ -13,7 +13,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CSV Reader AI",
+  title: "DataWeaver (DW)",
   description: "Conversational data analytics platform",
 };
 

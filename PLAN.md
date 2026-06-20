@@ -35,7 +35,7 @@
 |---|---------|-------------|
 | 8 | **Multi-file Upload** | Upload multiple files (CSV, Excel) into a single "workspace". Each file/sheet becomes a table. |
 | 9 | **Google Sheets Connector** | OAuth2 "Connect Google Sheet" flow. Auto-discovers all tabs — each tab becomes a separate table. Supports re-sync to pull latest data. |
-| 10 | **Relationship Builder** | Visual UI to define joins: pick a column from Table A → link to a column in Table B. Auto-suggest relationships based on column name/type matching. Works across CSVs, Excel sheets, and Google Sheet tabs. |
+| 10 | **Relationship Builder** | Visual UI to define joins manually (drag-and-drop columns) or automatically via an auto-relationship detection engine (heuristics, value overlap, and semantic matching). Works across CSVs, Excel sheets, and Google Sheet tabs. |
 | 11 | **Cross-table Queries** | "What is the average order value by customer segment?" where orders and customers come from *different sources* (e.g., one CSV + one Google Sheet tab). |
 | 12 | **Schema Diagram** | A visual entity-relationship diagram showing tables from all sources and their connections. |
 
@@ -150,6 +150,18 @@ The core prompt engineering flow:
 
 5. System asks LLM to format/explain results in natural language + suggest visualization type
 ```
+
+#### E. Auto-Relationship Detection Engine
+
+An automated pipeline runs upon ingestion of new files or worksheets to discover potential table relationships. Rather than relying on simple string matches, it uses a three-tier matching system to calculate confidence scores:
+
+1. **Heuristics & Name Analysis:** Analyzes column name suffix/prefix matches to detect common Primary Key (PK) & Foreign Key (FK) combinations (e.g., matching a table named `users` with primary key `id` to a column named `user_id` or `userId` in an `orders` table).
+2. **Data-Profiling & Overlap Checking (DuckDB):** Performs in-memory queries using DuckDB to evaluate:
+   - *Uniqueness:* Confirms if the candidate primary key column is indeed 100% unique.
+   - *Inclusion Dependency:* Calculates the cardinality overlap ratio between the FK and PK columns ($\frac{|FK \cap PK|}{|FK|}$). A high overlap (e.g. >90%) indicates a strong relationship.
+3. **Semantic LLM Matching:** For schemas with ambiguous naming conventions (e.g., matching a `cust_no` field to `ClientCode`), the metadata (tables, columns, and sample row values) is sent to the LLM to identify matches using semantic context.
+
+Relationships are presented visually to the user as dashed glowing connector lines on the schema canvas with confidence scores, requiring manual approval to bind.
 
 ---
 

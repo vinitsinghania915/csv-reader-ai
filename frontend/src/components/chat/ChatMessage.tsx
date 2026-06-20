@@ -36,7 +36,7 @@ export default function ChatMessage({ role, content, sql, chart_config, data, wo
 
       <div className="flex-1 overflow-hidden">
         <div className="font-medium text-sm text-zinc-300 mb-1">
-          {isUser ? "You" : "CSV Reader AI"}
+          {isUser ? "You" : "DataWeaver (DW)"}
         </div>
         
         <div className="text-zinc-100 text-[15px] leading-relaxed break-words whitespace-pre-wrap">

@@ -31,10 +31,8 @@ export default function Header({ sidebarOpen, toggleSidebar, showSidebarToggle =
           </button>
         )}
         <Link href="/workspaces" className="flex items-center gap-3">
-          <div className="bg-indigo-500/20 p-1.5 rounded-lg border border-indigo-500/30">
-            <Activity size={18} className="text-indigo-400" />
-          </div>
-          <h1 className="font-semibold tracking-tight text-zinc-100">CSV Reader AI</h1>
+          <img src="/logo.png" alt="DataWeaver Logo" className="w-8 h-8 rounded-lg object-cover border border-zinc-800" />
+          <h1 className="font-semibold tracking-tight text-zinc-100">DataWeaver (DW)</h1>
         </Link>
 
         {user && (
